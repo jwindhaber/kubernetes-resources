@@ -9,7 +9,7 @@ vagrant up
 
 Power down the environment:
 ```bash
-vagrant halt
+vagrant suspend
 ```
 
 Power the environment up again:
