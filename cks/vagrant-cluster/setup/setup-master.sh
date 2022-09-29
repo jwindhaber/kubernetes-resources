@@ -168,6 +168,11 @@ tar xzf ${ETCDCTL_VERSION_FULL}.tar.gz
 mv ${ETCDCTL_VERSION_FULL}/etcdctl /usr/bin/
 rm -rf ${ETCDCTL_VERSION_FULL} ${ETCDCTL_VERSION_FULL}.tar.gz
 
+# replace the canal interface to not pick the default but the given eth1 interface, since the default is the virtualbox virtual network
+kubectl get cm -n kube-system canal-config -o yaml | sed 's/\(canal_iface: \).*$/\1:eth1/' | kubectl replace -f -
+# add the IP_AUTODETECTION_METHOD env variable to signal calico to not take the default interface from virtualbox
+kubectl -n kube-system set env daemonsets.apps/canal IP_AUTODETECTION_METHOD=eth1
+
 echo
 echo "### COMMAND TO ADD A WORKER NODE ###"
 #kubeadm token create --print-join-command --ttl 0
