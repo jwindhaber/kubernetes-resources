@@ -7,8 +7,23 @@ kubeadm init --kubernetes-version=${KUBE_VERSION} --apiserver-advertise-address=
 mkdir -p ~/.kube
 sudo cp -i /etc/kubernetes/admin.conf ~/.kube/config
 
+
+### TODO this should be changed to the newer version sourced directly from calico
+# https://projectcalico.docs.tigera.io/getting-started/kubernetes/flannel/flannel
+# kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/canal.yaml
+# be aware of the pod-network-cidr if its not 10.244.0.0/16 than the yaml has to be changed => maybe better go with the default
+
 ### CNI
 kubectl apply -f https://raw.githubusercontent.com/killer-sh/cks-course-environment/master/cluster-setup/calico.yaml
+
+
+# Vagrant requires the first network device attached to the virtual machine to be a NAT device.
+# The NAT device is used for port forwarding, which is how Vagrant gets SSH access to the virtual machine.
+# https://www.oreilly.com/library/view/vagrant-up-and/9781449336103/ch04.html
+kubectl get cm -n kube-system canal-config -o yaml | sed 's/\(canal_iface: \).*$/\1:eth1/' | kubectl replace -f -
+kubectl -n kube-system set env daemonsets.apps/canal --containers="calico-node" IP_AUTODETECTION_METHOD=interface=eth1
+kubectl -n kube-system get daemonsets.apps/canal -o json | jq '.spec.template.spec.containers[] | select(.name=="kube-flannel").command |=.+ ["--iface=eth1"]' | kubectl apply -f -
+
 
 
 # etcdctl
@@ -18,11 +33,6 @@ wget https://github.com/etcd-io/etcd/releases/download/${ETCDCTL_VERSION}/${ETCD
 tar xzf ${ETCDCTL_VERSION_FULL}.tar.gz
 mv ${ETCDCTL_VERSION_FULL}/etcdctl /usr/bin/
 rm -rf ${ETCDCTL_VERSION_FULL} ${ETCDCTL_VERSION_FULL}.tar.gz
-
-# replace the canal interface to not pick the default but the given eth1 interface, since the default is the virtualbox virtual network
-kubectl get cm -n kube-system canal-config -o yaml | sed 's/\(canal_iface: \).*$/\1:eth1/' | kubectl replace -f -
-# add the IP_AUTODETECTION_METHOD env variable to signal calico to not take the default interface from virtualbox
-kubectl -n kube-system set env daemonsets.apps/canal IP_AUTODETECTION_METHOD=eth1
 
 echo
 echo "### COMMAND TO ADD A WORKER NODE ###"
