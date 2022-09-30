@@ -2,7 +2,7 @@ MASTER_IP = "10.156.0.2"
 WORKER_IP = "10.156.0.3"
 
 POD_NW_CIDR = "192.168.0.0/16"
-KUBE_VERSION=1.24.3
+KUBE_VERSION= "1.24.3"
 
 
 Vagrant.configure("2") do |config|
@@ -74,7 +74,7 @@ Vagrant.configure("2") do |config|
 
     worker.vm.provision "update-dns", type: "shell", :path => "setup/update-dns.sh"
 
-    master.vm.provision "base-setup", type: "shell", :path => "setup/base-setup.sh", env: {"KUBE_VERSION" => "#{KUBE_VERSION}"}
+    worker.vm.provision "base-setup", type: "shell", :path => "setup/base-setup.sh", env: {"KUBE_VERSION" => "#{KUBE_VERSION}"}
     worker.vm.provision "init-kubernetes", type: "shell", :path => "setup/setup-worker.sh"
 
   end
