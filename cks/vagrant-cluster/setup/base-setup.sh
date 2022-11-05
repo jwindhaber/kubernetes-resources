@@ -21,7 +21,6 @@ fi
 
 ### setup terminal
 apt-get update
-sudo apt-get install jq
 apt-get install -y bash-completion binutils
 echo 'colorscheme ron' >> ~/.vimrc
 echo 'set tabstop=2' >> ~/.vimrc
