@@ -1,0 +1,241 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: null
+  name: cassandra
+spec: {}
+status: {}
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: frontend
+  name: frontend
+spec:
+  containers:
+  - image: nginx
+    name: frontend
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: backend
+  name: backend
+spec:
+  containers:
+  - image: nginx
+    name: backend
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: cassandra 
+  name: cassandra
+  namespace: cassandra
+spec:
+  containers:
+  - image: nginx
+    name: cassandra
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+
+---
+
+apiVersion: v1              
+kind: Service               
+metadata:                   
+  creationTimestamp: null   
+  labels:                   
+    run: frontend           
+  name: frontend            
+spec:                       
+  ports:                    
+  - port: 80                
+    protocol: TCP           
+    targetPort: 80          
+  selector:                 
+    run: frontend           
+status:                     
+  loadBalancer: {}          
+
+---
+
+apiVersion: v1              
+kind: Service               
+metadata:                   
+  creationTimestamp: null   
+  labels:                   
+    run: backend            
+  name: backend            
+spec:                       
+  ports:                    
+  - port: 80                
+    protocol: TCP           
+    targetPort: 80          
+  selector:                 
+    run: backend           
+status:                     
+  loadBalancer: {}  
+---
+
+apiVersion: v1              
+kind: Service               
+metadata:                   
+  creationTimestamp: null   
+  labels:                   
+    run: cassandra            
+  name: cassandra
+  namespace: cassandra         
+spec:                       
+  ports:                    
+  - port: 80                
+    protocol: TCP           
+    targetPort: 80          
+  selector:                 
+    run: cassandra           
+status:
+  loadBalancer: {}                     
+
+---
+
+apiVersion: networking.k8s.io/v1       
+kind: NetworkPolicy                    
+metadata:                              
+  name: default-deny
+  namespace: default                   
+spec:                                  
+  podSelector: {}                      
+  policyTypes:                         
+  - Ingress                            
+  - Egress                             
+  egress:                              
+  - to:                                
+    ports:                             
+      - port: 53                       
+        protocol: TCP                  
+      - port: 53                       
+        protocol: UDP                  
+
+---
+
+apiVersion: networking.k8s.io/v1       
+kind: NetworkPolicy                    
+metadata:                              
+  name: default-deny
+  namespace: cassandra                   
+spec:                                  
+  podSelector: {}                      
+  policyTypes:                         
+  - Ingress                            
+  - Egress                             
+  egress:                              
+  - to:                                
+    ports:                             
+      - port: 53                       
+        protocol: TCP                  
+      - port: 53                       
+        protocol: UDP                  
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      run: frontend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              run: backend
+      ports:
+        - protocol: TCP
+          port: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      run: backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              run: frontend
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    - to:
+        - podSelector:             
+            matchLabels:               
+              run: cassandra
+                    
+          namespaceSelector:             
+            matchLabels:               
+              kubernetes.io/metadata.name: cassandra
+      ports:
+        - protocol: TCP
+          port: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cassandra
+  namespace: cassandra
+spec:
+  podSelector:
+    matchLabels:
+      run: cassandra
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              run: backend
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+      ports:
+        - protocol: TCP
+          port: 80
+
+
