@@ -79,8 +79,13 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+      - secure-ingress.com
+    secretName: secure-ingress
   rules:
-  - http:
+  - host: secure-ingress.com
+    http:
       paths:
       - path: /service1
         pathType: Prefix
